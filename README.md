@@ -85,9 +85,3 @@ apply from: file("../../node_modules/@comtechgold/react-native-sdk/gradle/comtec
 ```
 
 See `library/README.md` for full API.
-
-## Next steps
-
-- Wire Shufti `NativeModules` into `library/src/screens/KycScreen.jsx` (from main `cGold-android-redesign` app).
-- Pass real `userToken` after partner login for KYC/buy APIs.
-- Replace minimal register payload with production fields when backend contract is fixed.
