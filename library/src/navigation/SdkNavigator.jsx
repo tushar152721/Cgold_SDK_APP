@@ -8,6 +8,8 @@ import KycVerificationScreen from '../screens/KycVerificationScreen';
 import TradeScreen from '../screens/TradeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import TradeHistoryScreen from '../screens/TradeHistoryScreen';
+import AddFundScreen from '../screens/AddFundScreen';
+import FundDepositHistoryScreen from '../screens/FundDepositHistoryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -76,6 +78,16 @@ export default function SdkNavigator({
         name="BuyGold"
         component={TradeScreen}
         options={{ title: 'Buy gold' }}
+      />
+      <Stack.Screen
+        name="AddFund"
+        component={AddFundScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="FundDepositHistory"
+        component={FundDepositHistoryScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="KycVerification"

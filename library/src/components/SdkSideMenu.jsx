@@ -15,6 +15,7 @@ const MENU_ITEMS = [
   { key: 'SdkHome', label: 'Dashboard', subtitle: 'Balances & buy gold' },
   { key: 'Profile', label: 'Profile', subtitle: 'Account & holdings' },
   { key: 'TradeHistory', label: 'Trade history', subtitle: 'Past point purchases' },
+  { key: 'FundDepositHistory', label: 'Fund history', subtitle: 'Deposit requests' },
   { key: 'Kyc', label: 'KYC details', subtitle: 'Verification status' },
 ];
 

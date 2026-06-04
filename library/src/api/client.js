@@ -5,9 +5,12 @@ import { handleSdkSessionExpired } from '../utils/sessionAuth';
 import { applyMaintenanceFromApiError } from '../utils/maintenanceMode';
 
 const BOUNZ_USER_PATH = '/api/sdk/bounz/user';
+const BOUNZ_FUND_PATH = '/api/sdk/bounz/fund';
 
 let apiClient = null;
+let fundApiClient = null;
 let requestInterceptorId = null;
+let fundRequestInterceptorId = null;
 
 function countryCodeForApi(code) {
   return String(code || '').replace(/\D/g, '');
@@ -15,8 +18,69 @@ function countryCodeForApi(code) {
 
 export function resetApiClient() {
   apiClient = null;
+  fundApiClient = null;
   requestInterceptorId = null;
+  fundRequestInterceptorId = null;
 }
+
+function attachSdkAuthInterceptors(client, interceptorIdRef) {
+  if (interceptorIdRef.current != null) {
+    client.interceptors.request.eject(interceptorIdRef.current);
+    interceptorIdRef.current = null;
+  }
+
+  interceptorIdRef.current = client.interceptors.request.use(req => {
+    const cfg = getConfig();
+    if (cfg?.userToken) {
+      const token = cfg.userToken.startsWith('Bearer ')
+        ? cfg.userToken
+        : `Bearer ${cfg.userToken}`;
+      req.headers.Authorization = token;
+    }
+    if (cfg?.partnerCode) {
+      req.headers['X-Sdk-Partner-Code'] = cfg.partnerCode;
+    }
+    if (cfg?.partnerKey) {
+      req.headers['X-Sdk-Partner-Key'] = cfg.partnerKey;
+    }
+    return req;
+  });
+
+  client.interceptors.response.use(
+    res => res,
+    async error => {
+      const status = error?.response?.status;
+      const reqConfig = error?.config;
+
+      if (applyMaintenanceFromApiError(error)) {
+        error.sdkMaintenanceMode = true;
+        error.message =
+          error?.response?.data?.error ||
+          'Service is under maintenance. Please try again later.';
+        return Promise.reject(error);
+      }
+
+      if (
+        reqConfig &&
+        !isPartnerOnlyApiPath(reqConfig.url) &&
+        status === 401
+      ) {
+        const message = getApiErrorMessage(
+          error,
+          'Session expired. Please connect again.',
+        );
+        await handleSdkSessionExpired(error);
+        error.sdkSessionExpired = true;
+        error.message = message;
+      }
+
+      return Promise.reject(error);
+    },
+  );
+}
+
+const userInterceptorRef = { current: null };
+const fundInterceptorRef = { current: null };
 
 export function getApiClient() {
   const config = requireConfig();
@@ -27,64 +91,28 @@ export function getApiClient() {
       baseURL,
       timeout: 30000,
     });
-
-    if (requestInterceptorId != null) {
-      apiClient.interceptors.request.eject(requestInterceptorId);
-      requestInterceptorId = null;
-    }
-
-    requestInterceptorId = apiClient.interceptors.request.use(req => {
-      const cfg = getConfig();
-      if (cfg?.userToken) {
-        const token = cfg.userToken.startsWith('Bearer ')
-          ? cfg.userToken
-          : `Bearer ${cfg.userToken}`;
-        req.headers.Authorization = token;
-      }
-      if (cfg?.partnerCode) {
-        req.headers['X-Sdk-Partner-Code'] = cfg.partnerCode;
-      }
-      if (cfg?.partnerKey) {
-        req.headers['X-Sdk-Partner-Key'] = cfg.partnerKey;
-      }
-      return req;
-    });
-
-    apiClient.interceptors.response.use(
-      res => res,
-      async error => {
-        const status = error?.response?.status;
-        const reqConfig = error?.config;
-        const hadUserToken = Boolean(reqConfig?.headers?.Authorization);
-
-        if (applyMaintenanceFromApiError(error)) {
-          error.sdkMaintenanceMode = true;
-          error.message =
-            error?.response?.data?.error ||
-            'Service is under maintenance. Please try again later.';
-          return Promise.reject(error);
-        }
-
-        if (
-          reqConfig &&
-          !isPartnerOnlyApiPath(reqConfig.url) &&
-          status === 401
-        ) {
-          const message = getApiErrorMessage(
-            error,
-            'Session expired. Please connect again.',
-          );
-          await handleSdkSessionExpired(error);
-          error.sdkSessionExpired = true;
-          error.message = message;
-        }
-
-        return Promise.reject(error);
-      },
-    );
+    attachSdkAuthInterceptors(apiClient, userInterceptorRef);
+    requestInterceptorId = userInterceptorRef.current;
   }
 
   return apiClient;
+}
+
+/** SDK fund deposit — mirrors main app POST /api/funddeposit via /api/sdk/bounz/fund */
+export function getFundApiClient() {
+  const config = requireConfig();
+  const baseURL = `${config.apiBaseUrl}${BOUNZ_FUND_PATH}`;
+
+  if (!fundApiClient || fundApiClient.defaults.baseURL !== baseURL) {
+    fundApiClient = axios.create({
+      baseURL,
+      timeout: 45000,
+    });
+    attachSdkAuthInterceptors(fundApiClient, fundInterceptorRef);
+    fundRequestInterceptorId = fundInterceptorRef.current;
+  }
+
+  return fundApiClient;
 }
 
 /** Partner-only calls (bootstrap / register) */
@@ -192,4 +220,18 @@ export const sdkApi = {
 
   getTradeHistory: ({ page = 1, limit = 20 } = {}) =>
     getApiClient().get('/trade/history', { params: { page, limit } }),
+
+  /** Direct / online fund deposit request (pending admin approval). */
+  fundDeposit: data => getFundApiClient().post('/', data),
+
+  getFundBalance: () => getFundApiClient().get('/balance'),
+
+  listFundDeposits: ({ page = 1, limit = 10, status } = {}) =>
+    getFundApiClient().get('/', {
+      params: { page, limit, ...(status ? { status } : {}) },
+    }),
+
+  /** Same as main app GET /api/funddeposit/?page=N — returns { docs, totalPages, ... } */
+  getDepositFundHistory: (page = 1, limit = 20) =>
+    getFundApiClient().get('/', { params: { page, limit } }),
 };

@@ -8,6 +8,8 @@ import SdkHomeScreen from './screens/SdkHomeScreen';
 import KycScreen from './screens/KycScreen';
 import BuyGoldScreen from './screens/BuyGoldScreen';
 import TradeHistoryScreen from './screens/TradeHistoryScreen';
+import AddFundScreen from './screens/AddFundScreen';
+import FundDepositHistoryScreen from './screens/FundDepositHistoryScreen';
 
 export {
   ComtechGold,
@@ -20,6 +22,8 @@ export {
   KycScreen,
   BuyGoldScreen,
   TradeHistoryScreen,
+  AddFundScreen,
+  FundDepositHistoryScreen,
 };
 
 /** Drop-in component — init, navigation, register, KYC, and buy handled internally. */

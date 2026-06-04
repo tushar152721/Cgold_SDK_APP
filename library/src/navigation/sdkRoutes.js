@@ -6,6 +6,8 @@ export const SDK_AUTHENTICATED_ROUTES = [
   'Kyc',
   'Trade',
   'BuyGold',
+  'AddFund',
+  'FundDepositHistory',
 ];
 
 /** Screens that show the slide-out menu button. */
@@ -18,6 +20,8 @@ export const SDK_ROUTES_WITH_BACK = [
   'Kyc',
   'Trade',
   'BuyGold',
+  'AddFund',
+  'FundDepositHistory',
 ];
 
 export const SDK_ROUTE_PAGE_TITLES = {
@@ -26,6 +30,8 @@ export const SDK_ROUTE_PAGE_TITLES = {
   Kyc: 'KYC details',
   Trade: 'Buy & sell',
   BuyGold: 'Buy gold',
+  AddFund: 'Add funds',
+  FundDepositHistory: 'Fund history',
 };
 
 export function isSdkAuthenticatedRoute(routeName) {

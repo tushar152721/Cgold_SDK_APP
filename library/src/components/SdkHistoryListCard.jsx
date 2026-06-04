@@ -34,6 +34,15 @@ function statusPresentation(status) {
   if (s === 'locked') {
     return { label: 'Processing', color: '#92400E', bg: '#FEF3C7' };
   }
+  if (s === 'approved') {
+    return { label: 'Approved', color: '#15803D', bg: '#DCFCE7' };
+  }
+  if (s === 'pending') {
+    return { label: 'Pending', color: '#92400E', bg: '#FEF3C7' };
+  }
+  if (s === 'rejected' || s === 'cancel') {
+    return { label: s === 'cancel' ? 'Cancelled' : 'Rejected', color: '#991B1B', bg: '#FEE2E2' };
+  }
   if (s) {
     return {
       label: s.charAt(0).toUpperCase() + s.slice(1),
@@ -51,14 +60,17 @@ export default function SdkHistoryListCard({
   title = 'Gold purchased',
   date,
   amountGm,
+  amountLabel,
   status,
   meta,
 }) {
   const badge = statusPresentation(status);
   const amount =
-    amountGm != null && amountGm !== ''
-      ? `${Number(amountGm).toFixed(2)} gms`
-      : '—';
+    amountLabel != null && amountLabel !== ''
+      ? amountLabel
+      : amountGm != null && amountGm !== ''
+        ? `${Number(amountGm).toFixed(2)} gms`
+        : '—';
 
   return (
     <View style={styles.card}>

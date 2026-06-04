@@ -210,6 +210,18 @@ export default function SdkHomeScreen() {
               }
             />
 
+            <DashboardGridTile
+              title="Add funds"
+              subtitle={
+                user.fundTotal != null
+                  ? `Balance ${formatAed(user.fundTotal, 2)}`
+                  : 'Deposit via bank or card'
+              }
+              fullWidth
+              onPress={() => navigation.navigate('AddFund')}
+              disabled={!config.userToken}
+            />
+
             <View style={styles.gridRow}>
               <DashboardGridTile
                 title="Buy gold"
@@ -230,6 +242,14 @@ export default function SdkHomeScreen() {
               subtitle="Past point purchases"
               fullWidth
               onPress={() => navigation.navigate('TradeHistory')}
+              disabled={!config.userToken}
+            />
+
+            <DashboardGridTile
+              title="Fund history"
+              subtitle="Deposit requests & status"
+              fullWidth
+              onPress={() => navigation.navigate('FundDepositHistory')}
               disabled={!config.userToken}
             />
           </View>
