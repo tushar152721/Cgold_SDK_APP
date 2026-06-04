@@ -1,0 +1,63 @@
+{
+  "name": "@comtechgold/react-native-sdk",
+  "version": "0.1.0",
+  "description": "ComTech Gold React Native SDK — register entry, KYC, and direct buy",
+  "main": "src/index.js",
+  "react-native": "src/index.js",
+  "types": "src/index.d.ts",
+  "files": [
+    "src",
+    "assets",
+    "android",
+    "gradle",
+    "react-native.config.js",
+    "README.md"
+  ],
+  "scripts": {
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx"
+  },
+  "dependencies": {
+    "axios": "^1.10.0",
+    "socket.io-client": "^4.8.1"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": ">=2.0.0",
+    "@react-navigation/native": ">=7.0.0",
+    "@react-navigation/native-stack": ">=7.0.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.73.0",
+    "react-native-gesture-handler": ">=2.0.0",
+    "react-native-safe-area-context": ">=4.0.0",
+    "react-native-screens": ">=4.0.0",
+    "react-native-svg": ">=15.0.0",
+    "react-native-webview": ">=13.0.0",
+    "shuftipro-onsite-mobilesdk": "^1.0.5"
+  },
+  "peerDependenciesMeta": {
+    "react-native-webview": {
+      "optional": true
+    },
+    "shuftipro-onsite-mobilesdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0"
+  },
+  "keywords": [
+    "react-native",
+    "comtechgold",
+    "kyc",
+    "gold"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB_ORG/comtechgold-sdk.git",
+    "directory": "library"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_GITHUB_ORG/comtechgold-sdk/issues"
+  },
+  "homepage": "https://github.com/YOUR_GITHUB_ORG/comtechgold-sdk#readme",
+  "license": "UNLICENSED"
+}

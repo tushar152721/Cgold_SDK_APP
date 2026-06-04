@@ -1,0 +1,16 @@
+/**
+ * Apply from host android/app/build.gradle:
+ *
+ * apply from: "../../node_modules/@comtechgold/react-native-sdk/gradle/comtechgold-android.gradle"
+ *
+ * Or when using file: link:
+ * apply from: "../../node_modules/@comtechgold/react-native-sdk/gradle/comtechgold-android.gradle"
+ */
+
+android {
+  buildFeatures {
+    dataBinding = true
+    viewBinding = true
+    buildConfig = true
+  }
+}

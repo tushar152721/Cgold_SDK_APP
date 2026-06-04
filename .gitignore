@@ -1,0 +1,77 @@
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Metro / React Native
+.metro-health-check*
+*.jsbundle
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Android
+**/build/
+**/.gradle/
+**/local.properties
+**/.cxx/
+*.hprof
+*.keystore
+!**/debug.keystore
+.kotlin/
+
+# iOS / Xcode
+**/Pods/
+**/DerivedData/
+*.xcuserstate
+*.xcworkspace
+!**/*.xcworkspace/contents.xcworkspacedata
+xcuserdata/
+*.ipa
+*.dSYM.zip
+**/.xcode.env.local
+
+# Ruby / CocoaPods (host apps)
+**/vendor/bundle/
+
+# fastlane
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots/
+**/fastlane/test_output/
+
+# Yarn (Berry)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# npm pack / publish scratch
+*.tgz

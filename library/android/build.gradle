@@ -1,0 +1,27 @@
+buildscript {
+  ext.safeExtGet = { prop, fallback ->
+    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+  }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+  compileSdkVersion safeExtGet('compileSdkVersion', 35)
+  namespace "com.comtechgold.sdk"
+
+  defaultConfig {
+    minSdkVersion safeExtGet('minSdkVersion', 24)
+    targetSdkVersion safeExtGet('targetSdkVersion', 35)
+    consumerProguardFiles "proguard-consumer-rules.pro"
+  }
+
+  buildFeatures {
+    dataBinding = true
+    viewBinding = true
+  }
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-native:+'
+}
