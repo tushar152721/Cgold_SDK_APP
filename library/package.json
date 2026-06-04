@@ -52,12 +52,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_GITHUB_ORG/comtechgold-sdk.git",
+    "url": "https://github.com/tushar152721/Cgold_SDK_APP.git",
     "directory": "library"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_GITHUB_ORG/comtechgold-sdk/issues"
+    "url": "https://github.com/tushar152721/Cgold_SDK_APP/issues"
   },
-  "homepage": "https://github.com/YOUR_GITHUB_ORG/comtechgold-sdk#readme",
+  "homepage": "https://github.com/tushar152721/Cgold_SDK_APP#readme",
   "license": "UNLICENSED"
 }

@@ -6,10 +6,10 @@ Legacy ComTech app APIs (`/api/user`, `/api/buygold`, etc.) are not used by this
 
 ## Install
 
-**From GitHub** (package is in the `library/` subdirectory of the monorepo):
+**From GitHub** ([tushar152721/Cgold_SDK_APP](https://github.com/tushar152721/Cgold_SDK_APP), package in `library/`):
 
 ```bash
-npm install github:YOUR_GITHUB_ORG/comtechgold-sdk#main:library
+npm install github:tushar152721/Cgold_SDK_APP#main:library
 ```
 
 **From npm** (when published to a registry):

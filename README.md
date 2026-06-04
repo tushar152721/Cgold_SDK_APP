@@ -4,10 +4,10 @@ Partner integration (Bounz): initialize with **mobile**, **country code**, **par
 
 ## Install in a host app (from GitHub)
 
-The npm package lives in the `library/` folder. Replace `YOUR_GITHUB_ORG` with your GitHub user or organization:
+The npm package lives in the `library/` folder of [tushar152721/Cgold_SDK_APP](https://github.com/tushar152721/Cgold_SDK_APP):
 
 ```bash
-npm install github:YOUR_GITHUB_ORG/comtechgold-sdk#main:library
+npm install github:tushar152721/Cgold_SDK_APP#main:library
 ```
 
 Or in `package.json`:
@@ -15,14 +15,12 @@ Or in `package.json`:
 ```json
 {
   "dependencies": {
-    "@comtechgold/react-native-sdk": "github:YOUR_GITHUB_ORG/comtechgold-sdk#main:library"
+    "@comtechgold/react-native-sdk": "github:tushar152721/Cgold_SDK_APP#main:library"
   }
 }
 ```
 
 Then install peer dependencies (see `library/README.md`).
-
-> **Note:** After you create the GitHub repo, update `repository` / `bugs` / `homepage` in `library/package.json` with your real org name.
 
 ## Structure
 
