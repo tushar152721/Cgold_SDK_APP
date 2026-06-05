@@ -67,11 +67,11 @@ export default function MarketPriceCard({ compact = false }) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: SDK_COLORS.cardCream,
+    backgroundColor: 'transparent',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: SDK_COLORS.borderCream,
+    borderColor: "#E3B155",
     minHeight: 120,
   },
   cardCompact: {

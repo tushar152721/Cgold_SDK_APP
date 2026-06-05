@@ -8,6 +8,11 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import BuyGoldPaymentPicker from '../components/buyGold/BuyGoldPaymentPicker';
+import {
+  BOUNZ_TRADE_PAYMENT_METHODS,
+  BOUNZ_TRADE_PAYMENT_NOTES,
+} from '../constants/buyGold';
 import { requireConfig } from '../configStore';
 import {
   createBuyIdempotencyKey,
@@ -29,7 +34,6 @@ import { estimateMaxGoldFromPoints } from '../utils/tradeEstimate';
 import {
   getPointsPerAed,
   getBuyMinGoldGm,
-  getSellMinGoldGm,
 } from '../utils/tradeConfigCache';
 import { loadSdkProfile } from '../utils/profileCache';
 import {
@@ -47,15 +51,13 @@ export default function TradeScreen({ route }) {
   const config = requireConfig();
   const { price } = useSdkPrice();
   const { formatAed } = useSdkCurrency();
-  const initialMode = route?.params?.mode === 'sell' ? 'sell' : 'buy';
-
-  const [mode, setMode] = useState(initialMode);
   const [pointsPerAed, setPointsPerAed] = useState(200);
   const [grams, setGrams] = useState(String(getBuyMinGoldGm()));
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [tradePaymentMethod, setTradePaymentMethod] = useState('bounz_points');
   const { banner: orderBanner, dismissBanner } = usePendingBuyPoller({
     enabled: Boolean(config.userToken),
   });
@@ -85,25 +87,18 @@ export default function TradeScreen({ route }) {
     profile?.kycStatus === 'Approved';
   const canBuy = profile?.canUseBounzPoints === true;
   const marketOpen = Boolean(price?.isMarket);
-  const isBuy = mode === 'buy';
 
   const maxBuyGoldGm = useMemo(() => {
-    if (!isBuy) {
-      return null;
-    }
     const fromPoints = estimateMaxGoldFromPoints(
       profile?.pointBalance,
       price?.buyGm,
       pointsPerAed,
     );
     return getEffectiveBuyMaxGoldGm(fromPoints);
-  }, [isBuy, profile?.pointBalance, price?.buyGm, pointsPerAed]);
+  }, [profile?.pointBalance, price?.buyGm, pointsPerAed]);
 
   /** Recalculated locally when grams or socket price changes — no /trade/quote calls. */
   const quote = useMemo(() => {
-    if (!isBuy) {
-      return null;
-    }
     return quotePointsForGold(
       grams,
       price?.buyGm,
@@ -111,22 +106,19 @@ export default function TradeScreen({ route }) {
       getBuyMinGoldGm(),
       maxBuyGoldGm,
     );
-  }, [grams, price?.buyGm, isBuy, pointsPerAed, maxBuyGoldGm]);
+  }, [grams, price?.buyGm, pointsPerAed, maxBuyGoldGm]);
 
   const buyMinGm = getBuyMinGoldGm();
-  const sellMinGm = getSellMinGoldGm();
 
   useEffect(() => {
-    if (isBuy) {
-      setGrams(g => {
-        const n = parseFloat(g);
-        if (!g || Number.isNaN(n) || n < buyMinGm) {
-          return String(buyMinGm);
-        }
-        return g;
-      });
-    }
-  }, [isBuy, buyMinGm]);
+    setGrams(g => {
+      const n = parseFloat(g);
+      if (!g || Number.isNaN(n) || n < buyMinGm) {
+        return String(buyMinGm);
+      }
+      return g;
+    });
+  }, [buyMinGm]);
 
   const handleBuy = async () => {
     const validation = validateGoldGrams(grams, 'buy', maxBuyGoldGm);
@@ -155,7 +147,14 @@ export default function TradeScreen({ route }) {
       const res = await sdkApi.tradeBuy(goldGm, createBuyIdempotencyKey());
       const data = unwrapApiData(res);
       const orderStatus = data?.status;
-      notifyBuyTransaction({ success: true, goldGm, response: res });
+      const freshProfile = await loadSdkProfile({ force: true });
+      setProfile(freshProfile);
+      notifyBuyTransaction({
+        success: true,
+        goldGm,
+        response: res,
+        baselineGold: Number(freshProfile?.user?.goldTotal ?? 0),
+      });
       if (orderStatus === 'Pending') {
         setSuccess(
           `Order placed successfully for ${goldGm} g. Points are locked until the market order completes. You will be notified when gold is credited.`,
@@ -163,7 +162,6 @@ export default function TradeScreen({ route }) {
       } else {
         setSuccess(`Purchased ${goldGm} g with Bounz points.`);
       }
-      await loadProfile({ force: true });
     } catch (err) {
       const message =
         err?.response?.data?.error ||
@@ -177,7 +175,10 @@ export default function TradeScreen({ route }) {
     }
   };
 
-  const footer = isBuy ? (
+  const isFundOrCard = tradePaymentMethod === 'fund_or_card';
+  const tradePaymentNote = BOUNZ_TRADE_PAYMENT_NOTES[tradePaymentMethod];
+
+  const footer = (
     <>
       {error ? (
         <View style={styles.errorBox}>
@@ -194,29 +195,37 @@ export default function TradeScreen({ route }) {
           </TouchableOpacity>
         </View>
       ) : null}
-      <TouchableOpacity
-        style={[
-          ls.button,
-          (loading || !quote || !kycOk || !canBuy || !marketOpen) &&
-            ls.buttonDisabled,
-        ]}
-        onPress={handleBuy}
-        disabled={
-          loading ||
-          !quote ||
-          !kycOk ||
-          !canBuy ||
-          !marketOpen ||
-          maintenanceActive
-        }>
-        {loading ? (
-          <ActivityIndicator color="#1A1A1A" />
-        ) : (
-          <Text style={ls.buttonText}>Confirm buy with points</Text>
-        )}
-      </TouchableOpacity>
+      {isFundOrCard ? (
+        <TouchableOpacity
+          style={ls.button}
+          onPress={() => navigation.navigate('BuyGold')}>
+          <Text style={ls.buttonText}>Continue to fund & card buy</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[
+            ls.button,
+            (loading || !quote || !kycOk || !canBuy || !marketOpen) &&
+              ls.buttonDisabled,
+          ]}
+          onPress={handleBuy}
+          disabled={
+            loading ||
+            !quote ||
+            !kycOk ||
+            !canBuy ||
+            !marketOpen ||
+            maintenanceActive
+          }>
+          {loading ? (
+            <ActivityIndicator color="#1A1A1A" />
+          ) : (
+            <Text style={ls.buttonText}>Confirm buy with points</Text>
+          )}
+        </TouchableOpacity>
+      )}
     </>
-  ) : null;
+  );
 
   return (
     <View style={styles.root}>
@@ -224,25 +233,8 @@ export default function TradeScreen({ route }) {
       <SdkScreenLayout
         variant="cream"
         fill
-        subtitle="Trade using Bounz points · prices in AED"
+        subtitle="Buy with Bounz points or fund & card · prices in AED"
         footer={footer}>
-        <View style={styles.toggleRow}>
-          <TouchableOpacity
-            style={[styles.toggle, isBuy && styles.toggleActive]}
-            onPress={() => setMode('buy')}>
-            <Text style={[styles.toggleText, isBuy && styles.toggleTextActive]}>
-              Buy
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggle, !isBuy && styles.toggleActive]}
-            onPress={() => setMode('sell')}>
-            <Text style={[styles.toggleText, !isBuy && styles.toggleTextActive]}>
-              Sell
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.row}>
           <MarketPriceCard compact />
           <View style={styles.gap} />
@@ -257,84 +249,77 @@ export default function TradeScreen({ route }) {
         ) : null}
 
         <OrderStatusBanner banner={orderBanner} onDismiss={dismissBanner} />
+        {!kycOk ? (
+          <SdkNote variant="warn">
+            KYC must be Approved before you can buy gold. Go to the KYC section
+            on your dashboard.
+          </SdkNote>
+        ) : null}
+        {!marketOpen ? (
+          <SdkNote variant="warn">
+            Market is currently closed. Buying with Bounz points is disabled
+            until the market reopens.
+          </SdkNote>
+        ) : null}
+        <BuyGoldPaymentPicker
+          methods={BOUNZ_TRADE_PAYMENT_METHODS}
+          value={tradePaymentMethod}
+          onChange={setTradePaymentMethod}
+          note={tradePaymentNote}
+        />
 
-        {isBuy ? (
-          <>
-            {!kycOk ? (
-              <SdkNote variant="warn">
-                KYC must be Approved before you can buy gold. Go to the KYC section
-                on your dashboard.
-              </SdkNote>
-            ) : null}
-            {!marketOpen ? (
-              <SdkNote variant="warn">
-                Market is currently closed. Buying with Bounz points is disabled
-                until the market reopens.
-              </SdkNote>
-            ) : null}
-            <SdkNote>
-              Minimum purchase {buyMinGm}g
-              {maxBuyGoldGm != null ? ` · maximum ${maxBuyGoldGm}g` : ''}. Points
-              are locked at checkout through ClubClass.
-            </SdkNote>
-
-            <Text style={ls.label}>Grams to buy</Text>
-            <TextInput
-              style={[ls.input, styles.inputCream]}
-              value={grams}
-              onChangeText={setGrams}
-              keyboardType="decimal-pad"
-              placeholder={String(buyMinGm)}
-              placeholderTextColor="#9CA3AF"
-            />
-
-            <View style={[ls.card, ls.cardCream]}>
-              {quote ? (
-                <>
-                  <InfoRow
-                    label="Points required"
-                    value={quote.pointsRequired}
-                    variant="cream"
-                  />
-                  <InfoRow
-                    label="AED estimate"
-                    value={
-                      quote.aedAmount != null
-                        ? formatAed(quote.aedAmount, 2)
-                        : '—'
-                    }
-                    variant="cream"
-                  />
-                </>
-              ) : (
-                <Text style={ls.hint}>
-                  Enter between {buyMinGm}g
-                  {maxBuyGoldGm != null ? ` and ${maxBuyGoldGm}g` : ''} with a live
-                  market price to see your quote.
-                </Text>
-              )}
-            </View>
-          </>
+        {isFundOrCard ? (
+          <SdkNote>
+            Fund balance and card payments use the Buy Gold screen — a
+            separate checkout from Bounz points.
+          </SdkNote>
         ) : (
+          <SdkNote>
+            Minimum purchase {buyMinGm}g
+            {maxBuyGoldGm != null ? ` · maximum ${maxBuyGoldGm}g` : ''}.
+          </SdkNote>
+        )}
+
+        {!isFundOrCard ? (
           <>
-            <SdkNote variant="warn">
-              Sell gold via Bounz SDK is not available yet (minimum {sellMinGm}g in
-              the ComTech Gold app). Use the main app
-              for sell flows, or check back in a future release.
-            </SdkNote>
-            <View style={[ls.card, ls.cardCream]}>
+        <Text style={ls.label}>Grams to buy</Text>
+        <TextInput
+          style={[ls.input, styles.inputCream]}
+          value={grams}
+          onChangeText={setGrams}
+          keyboardType="decimal-pad"
+          placeholder={String(buyMinGm)}
+          placeholderTextColor="#9CA3AF"
+        />
+
+        <View style={[ls.card, ls.cardCream]}>
+          {quote ? (
+            <>
               <InfoRow
-                label="Your gold balance"
+                label="Points required"
+                value={quote.pointsRequired}
+                variant="cream"
+              />
+              <InfoRow
+                label="AED estimate"
                 value={
-                  profile?.user?.goldTotal != null
-                    ? `${profile.user.goldTotal} g`
+                  quote.aedAmount != null
+                    ? formatAed(quote.aedAmount, 2)
                     : '—'
                 }
                 variant="cream"
               />
-            </View>
+            </>
+          ) : (
+            <Text style={ls.hint}>
+              Enter between {buyMinGm}g
+              {maxBuyGoldGm != null ? ` and ${maxBuyGoldGm}g` : ''} with a live
+              market price to see your quote.
+            </Text>
+          )}
+        </View>
           </>
-        )}
+        ) : null}
       </SdkScreenLayout>
     </View>
   );
@@ -344,29 +329,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: SDK_COLORS.backgroundCream,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    backgroundColor: '#E8E0D4',
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 14,
-  },
-  toggle: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  toggleActive: {
-    backgroundColor: SDK_COLORS.primary,
-  },
-  toggleText: {
-    fontWeight: '600',
-    color: SDK_COLORS.textMutedDark,
-  },
-  toggleTextActive: {
-    color: '#1A1A1A',
   },
   row: {
     flexDirection: 'row',

@@ -14,4 +14,4 @@ export const FUND_PAYMENT_METHODS = [
 ];
 
 export const FUND_DEPOSIT_NOTE =
-  'Note: No taxes or charges will be deducted for online payment. For direct transfer, complete the transfer from your bank app, then enter the transaction reference below.';
+  'Note: Credit/debit payments include service charges and VAT (shown before pay). For direct transfer, complete the transfer from your bank app, then enter the transaction reference below.';

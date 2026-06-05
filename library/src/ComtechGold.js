@@ -71,7 +71,7 @@ const ComtechGold = {
 
   openBuy() {
     requireConfig();
-    navigateSdk('Trade', { mode: 'buy' });
+    navigateSdk('BuyGold');
     emitEvent('buy', { action: 'open' });
   },
 
@@ -103,6 +103,17 @@ const ComtechGold = {
   openPurchaseHistory() {
     requireConfig();
     navigateSdk('TradeHistory');
+  },
+
+  /** Gold & fund statement history with calendar filter and PDF download. */
+  openStatementHistory() {
+    requireConfig();
+    navigateSdk('StatementHistory');
+  },
+
+  openAboutUs() {
+    requireConfig();
+    navigateSdk('AboutUs');
   },
 
   async logout() {

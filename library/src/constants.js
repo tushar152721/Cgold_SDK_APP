@@ -1,7 +1,7 @@
 export const STORAGE_KEY = '@comtechgold/sdk/config';
 
 export const API_HOSTS = {
-  local: 'http://192.168.1.4:5055',
+  local: 'http://192.168.1.1:5055',
   demo: 'https://demoapi.comtechgold.com',
   prod: 'https://appapi.comtechgold.com',
 };

@@ -55,14 +55,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: SDK_COLORS.borderCream,
-    backgroundColor: SDK_COLORS.cardCream,
+    borderColor: '#C9A227',
+    // backgroundColor: SDK_COLORS.cardCream,
     overflow: 'hidden',
     minHeight: 56,
   },
   accent: {
     width: 4,
-    backgroundColor: SDK_COLORS.primary,
+    // backgroundColor: SDK_COLORS.primary,
   },
   inner: {
     flex: 1,

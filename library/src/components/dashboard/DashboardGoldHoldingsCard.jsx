@@ -1,8 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { SDK_COLORS } from '../../constants';
 
-export default function DashboardGoldHoldingsCard({ goldGm, valueHint }) {
+export default function DashboardGoldHoldingsCard({
+  goldGm,
+  valueHint,
+  refreshing = false,
+}) {
   const goldText =
     goldGm != null && goldGm !== ''
       ? `${Number(goldGm).toFixed(2)}g`
@@ -10,6 +14,12 @@ export default function DashboardGoldHoldingsCard({ goldGm, valueHint }) {
 
   return (
     <View style={styles.card}>
+      {refreshing ? (
+        <View style={styles.refreshOverlay}>
+          <ActivityIndicator size="small" color={SDK_COLORS.primary} />
+          <Text style={styles.refreshText}>Updating gold balance…</Text>
+        </View>
+      ) : null}
       <View style={styles.textCol}>
         <Text style={styles.label}>My Gold Holdings</Text>
         <Text style={styles.gold}>{goldText}</Text>
@@ -31,6 +41,8 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 14,
     minHeight: 100,
+    position: 'relative',
+    overflow: 'hidden',
     shadowColor: SDK_COLORS.primary,
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -54,6 +66,20 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: 6,
     fontSize: 12,
+    color: SDK_COLORS.textMutedDark,
+  },
+  refreshOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    borderRadius: 16,
+  },
+  refreshText: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '600',
     color: SDK_COLORS.textMutedDark,
   },
   art: {

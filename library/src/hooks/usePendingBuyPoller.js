@@ -5,6 +5,14 @@ import { sdkApi } from '../api/client';
 import { clearProfileCache } from '../utils/profileCache';
 import { processTradeHistoryForNotifications } from '../utils/buyOrderNotifications';
 import { getPendingBuyIds } from '../utils/pendingBuyTracker';
+import {
+  markGoldBalanceToasted,
+  wasGoldBalanceToasted,
+  clearGoldBalanceWatch,
+} from '../utils/goldBalanceWatcher';
+import { useSdkToast } from '../context/SdkToastContext';
+import { notifyDashboardGoldRefresh } from '../utils/dashboardRefreshBus';
+import { parseBuyGoldHistoryResponse } from '../utils/buyGoldHistory';
 
 const POLL_MS = 25000;
 
@@ -14,6 +22,7 @@ const POLL_MS = 25000;
 export function usePendingBuyPoller(options = {}) {
   const { enabled = true, pollIntervalMs = POLL_MS } = options;
   const config = requireConfig();
+  const { showToast } = useSdkToast();
   const [banner, setBanner] = useState(null);
   const intervalRef = useRef(null);
   const mountedRef = useRef(true);
@@ -27,10 +36,8 @@ export function usePendingBuyPoller(options = {}) {
       return;
     }
     try {
-      const res = await sdkApi.getTradeHistory({ page: 1, limit: 20 });
-      const apiBody = res?.data ?? {};
-      const data = apiBody.data ?? apiBody;
-      const items = data.items ?? [];
+      const res = await sdkApi.getBuyGoldHistory(1, 20);
+      const { items } = parseBuyGoldHistoryResponse(res);
       const { executed, rejected, processingCount } =
         processTradeHistoryForNotifications(items);
 
@@ -41,13 +48,33 @@ export function usePendingBuyPoller(options = {}) {
       if (executed.length > 0) {
         const last = executed[0];
         const gm = last?.goldGm != null ? Number(last.goldGm) : null;
+        const buyGoldId = last?.buyGoldId;
         clearProfileCache();
+        if (buyGoldId && !wasGoldBalanceToasted(buyGoldId)) {
+          markGoldBalanceToasted(buyGoldId);
+          clearGoldBalanceWatch(buyGoldId);
+          showToast(
+            gm != null
+              ? `Your gold balance is updated — ${gm} g has been added to your holdings.`
+              : 'Your gold balance is updated.',
+            { type: 'success', duration: 5000 },
+          );
+        }
+        const usedPoints = last?.points != null || last?.source === 'bounz_points';
+        notifyDashboardGoldRefresh({
+          goldGm: gm,
+          source: usedPoints ? 'points' : 'buy',
+        });
         setBanner({
           kind: 'executed',
           message:
             gm != null
-              ? `Your gold purchase is complete — ${gm} g has been added. Bounz points were redeemed.`
-              : 'Your gold purchase is complete. Bounz points were redeemed.',
+              ? usedPoints
+                ? `Your gold purchase is complete — ${gm} g has been added. Bounz points were redeemed.`
+                : `Your gold purchase is complete — ${gm} g has been added to your holdings.`
+              : usedPoints
+                ? 'Your gold purchase is complete. Bounz points were redeemed.'
+                : 'Your gold purchase is complete.',
           goldGm: gm,
         });
         return;
@@ -56,12 +83,17 @@ export function usePendingBuyPoller(options = {}) {
       if (rejected.length > 0) {
         const last = rejected[0];
         const gm = last?.goldGm != null ? Number(last.goldGm) : null;
+        const usedPoints = last?.points != null || last?.source === 'bounz_points';
         setBanner({
           kind: 'rejected',
           message:
             gm != null
-              ? `Your order for ${gm} g could not be completed. Locked points were released.`
-              : 'Your order could not be completed. Locked points were released.',
+              ? usedPoints
+                ? `Your order for ${gm} g could not be completed. Locked points were released.`
+                : `Your order for ${gm} g could not be completed.`
+              : usedPoints
+                ? 'Your order could not be completed. Locked points were released.'
+                : 'Your order could not be completed.',
           goldGm: gm,
         });
         return;
@@ -75,7 +107,7 @@ export function usePendingBuyPoller(options = {}) {
             : {
                 kind: 'processing',
                 message:
-                  'Your order is processing. Gold and points will update when the market order completes.',
+                  'Your order is processing. Your holdings will update when the market order completes.',
               },
         );
       } else {
@@ -84,7 +116,7 @@ export function usePendingBuyPoller(options = {}) {
     } catch {
       /* ignore poll errors */
     }
-  }, [config.userToken, enabled]);
+  }, [config.userToken, enabled, showToast]);
 
   useFocusEffect(
     useCallback(() => {

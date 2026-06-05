@@ -5,7 +5,7 @@ import {
   SDK_SELL_MIN_GOLD_GM,
 } from './tradeLimits';
 
-/** @type {{ pointsPerAed: number, buyMinGoldGm: number, sellMinGoldGm: number, buyMaxGoldGm: number|null } | null} */
+/** @type {{ pointsPerAed: number, buyMinGoldGm: number, sellMinGoldGm: number, buyMaxGoldGm: number|null, onlinePaymentCharge: object|null, paymentGatewayByCurrency: object|null } | null} */
 let cache = null;
 let loadPromise = null;
 
@@ -31,6 +31,17 @@ export function getSellMinGoldGm() {
 export function getBuyMaxGoldGm() {
   const n = Number(cache?.buyMaxGoldGm);
   return n > 0 ? n : null;
+}
+
+export function getOnlinePaymentCharge() {
+  return cache?.onlinePaymentCharge || {};
+}
+
+export function getPaymentGatewaySettings() {
+  return {
+    paymentGatewayByCurrency: cache?.paymentGatewayByCurrency || null,
+    onlinePaymentCharge: cache?.onlinePaymentCharge || null,
+  };
 }
 
 export async function loadTradeConfig(force = false) {
@@ -63,6 +74,8 @@ export async function loadTradeConfig(force = false) {
       buyMinGoldGm: buyMin,
       sellMinGoldGm: sellMin,
       buyMaxGoldGm: buyMax > 0 ? buyMax : null,
+      onlinePaymentCharge: data.onlinePaymentCharge || null,
+      paymentGatewayByCurrency: data.paymentGatewayByCurrency || null,
     };
     return cache;
   })().finally(() => {

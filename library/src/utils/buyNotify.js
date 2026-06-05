@@ -1,5 +1,5 @@
 import { emitEvent } from '../configStore';
-import { watchPendingBuy } from './pendingBuyTracker';
+import { registerPendingGoldBuy } from './goldBalanceWatcher';
 import { unwrapApiData } from './parseApiData';
 
 export function createBuyIdempotencyKey() {
@@ -12,10 +12,10 @@ export function createBuyIdempotencyKey() {
 /**
  * Notify host app (onEvent) after a buy API call.
  * Pending hedge orders emit action `placed`; immediate completion emits `executed`.
- * @param {{ success: boolean, goldGm?: number, response?: object, error?: string }} opts
+ * @param {{ success: boolean, goldGm?: number, response?: object, error?: string, baselineGold?: number }} opts
  */
 export function notifyBuyTransaction(opts) {
-  const { success, goldGm, response, error } = opts;
+  const { success, goldGm, response, error, baselineGold } = opts;
   const data = unwrapApiData(response);
   const orderStatus = data?.status;
   const buyGoldId = data?.buyGoldId;
@@ -25,7 +25,12 @@ export function notifyBuyTransaction(opts) {
     const action = isPending ? 'placed' : 'executed';
 
     if (isPending && buyGoldId) {
-      watchPendingBuy(buyGoldId);
+      registerPendingGoldBuy({
+        buyGoldId,
+        baselineGold,
+        goldGm: data?.quote?.goldGm ?? goldGm,
+        source: 'points',
+      });
     }
 
     emitEvent('buy', {

@@ -14,6 +14,7 @@ import ComtechGoldHeader from '../components/ComtechGoldHeader';
 import KycOutcomeCard from '../components/KycOutcomeCard';
 import ComtechGoldCopyrightFooter from '../components/ComtechGoldCopyrightFooter';
 import DashboardMarketPriceHeader from '../components/dashboard/DashboardMarketPriceHeader';
+import DashboardAvailableBalanceCard from '../components/dashboard/DashboardAvailableBalanceCard';
 import DashboardGoldHoldingsCard from '../components/dashboard/DashboardGoldHoldingsCard';
 import DashboardGridTile from '../components/dashboard/DashboardGridTile';
 import DashboardKycCard from '../components/dashboard/DashboardKycCard';
@@ -26,6 +27,11 @@ import { usePendingBuyPoller } from '../hooks/usePendingBuyPoller';
 import OrderStatusBanner from '../components/OrderStatusBanner';
 import MaintenanceModeBanner from '../components/MaintenanceModeBanner';
 import { useMaintenanceMode } from '../hooks/useMaintenanceMode';
+import {
+  subscribeDashboardGoldRefresh,
+  hasPendingDashboardGoldRefresh,
+  clearPendingDashboardGoldRefresh,
+} from '../utils/dashboardRefreshBus';
 
 export default function SdkHomeScreen() {
   const navigation = useNavigation();
@@ -37,12 +43,14 @@ export default function SdkHomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [goldBalanceRefreshing, setGoldBalanceRefreshing] = useState(false);
   const { banner: orderBanner, dismissBanner } = usePendingBuyPoller({
     enabled: Boolean(config.userToken),
   });
   const { active: maintenanceActive, message: maintenanceMessage } =
     useMaintenanceMode();
-  const refreshedAfterExecuteRef = useRef(false);
+  const isFocusedRef = useRef(false);
+  const goldRefreshInFlightRef = useRef(false);
 
   const kycOutcome = route.params?.kycOutcome;
   const kycStatusParam = route.params?.kycStatus;
@@ -91,23 +99,58 @@ export default function SdkHomeScreen() {
     }
   }, [config.userToken, refresh]);
 
+  const refreshAfterGoldCredit = useCallback(async () => {
+    if (!config.userToken || goldRefreshInFlightRef.current) {
+      return;
+    }
+    goldRefreshInFlightRef.current = true;
+    setGoldBalanceRefreshing(true);
+    setLoadError(null);
+    try {
+      clearProfileCache();
+      await refreshSdkMarketPrice();
+      const data = await loadSdkProfile({ force: true });
+      setProfile(data);
+      clearPendingDashboardGoldRefresh();
+    } catch (err) {
+      setLoadError(
+        err?.response?.data?.error ||
+          err?.message ||
+          'Could not refresh dashboard.',
+      );
+    } finally {
+      goldRefreshInFlightRef.current = false;
+      setGoldBalanceRefreshing(false);
+    }
+  }, [config.userToken]);
+
   useFocusEffect(
     useCallback(() => {
+      isFocusedRef.current = true;
       if (route.params?.kycRefresh && config.userToken) {
         refresh(true);
+      } else if (hasPendingDashboardGoldRefresh() && config.userToken) {
+        refreshAfterGoldCredit();
       }
-    }, [route.params?.kycRefresh, config.userToken, refresh]),
+      return () => {
+        isFocusedRef.current = false;
+      };
+    }, [
+      route.params?.kycRefresh,
+      config.userToken,
+      refresh,
+      refreshAfterGoldCredit,
+    ]),
   );
 
   useEffect(() => {
-    if (orderBanner?.kind === 'executed' && !refreshedAfterExecuteRef.current) {
-      refreshedAfterExecuteRef.current = true;
-      refresh(true);
-    }
-    if (!orderBanner) {
-      refreshedAfterExecuteRef.current = false;
-    }
-  }, [orderBanner, refresh]);
+    const unsubscribe = subscribeDashboardGoldRefresh(() => {
+      if (isFocusedRef.current) {
+        refreshAfterGoldCredit();
+      }
+    });
+    return unsubscribe;
+  }, [refreshAfterGoldCredit]);
 
   const user = profile?.user || {};
   const kycStatus = profile?.kycStatus ?? kycStatusParam ?? '—';
@@ -118,6 +161,7 @@ export default function SdkHomeScreen() {
   const marketOpen = Boolean(price?.isMarket);
   const buyGm = price?.buyGm;
   const goldGm = user.goldTotal;
+  const fundBalance = user.fundTotal;
 
   const pricePerGram =
     buyGm != null ? formatMarketGoldRate(buyGm, 2) : null;
@@ -139,8 +183,10 @@ export default function SdkHomeScreen() {
       ? `Bounz points · ${Number(profile.pointBalance).toLocaleString()}`
       : null;
 
-  const buyDisabled = !config.userToken || !canBuy || !kycOk;
-  const buySubtitle = !kycOk
+  const buyGoldDisabled = !config.userToken || !kycOk;
+  const pointsBuyDisabled = !config.userToken || !canBuy || !kycOk;
+  const buyGoldSubtitle = !kycOk ? 'Do KYC first' : 'Fund balance or card';
+  const pointsBuySubtitle = !kycOk
     ? 'Do KYC first'
     : !canBuy
       ? 'Points unavailable'
@@ -199,6 +245,19 @@ export default function SdkHomeScreen() {
               pricePerGram={pricePerGram}
               marketOpen={marketOpen}
               pointsLabel={pointsLabel}
+              refreshing={goldBalanceRefreshing}
+            />
+
+            <DashboardAvailableBalanceCard
+              balanceLabel={
+                fundBalance != null ? formatAed(fundBalance, 2) : null
+              }
+              refreshing={goldBalanceRefreshing || refreshing}
+              onPress={
+                config.userToken
+                  ? () => navigation.navigate('AddFund')
+                  : undefined
+              }
             />
 
             <DashboardGoldHoldingsCard
@@ -208,15 +267,12 @@ export default function SdkHomeScreen() {
                   ? `≈ ${estimatedGoldValue} at live price`
                   : null
               }
+              refreshing={goldBalanceRefreshing}
             />
 
             <DashboardGridTile
               title="Add funds"
-              subtitle={
-                user.fundTotal != null
-                  ? `Balance ${formatAed(user.fundTotal, 2)}`
-                  : 'Deposit via bank or card'
-              }
+              subtitle="Deposit via bank or card"
               fullWidth
               onPress={() => navigation.navigate('AddFund')}
               disabled={!config.userToken}
@@ -225,17 +281,25 @@ export default function SdkHomeScreen() {
             <View style={styles.gridRow}>
               <DashboardGridTile
                 title="Buy gold"
-                subtitle={buySubtitle}
-                onPress={() => navigation.navigate('Trade', { mode: 'buy' })}
-                disabled={buyDisabled}
+                subtitle={buyGoldSubtitle}
+                onPress={() => navigation.navigate('BuyGold')}
+                disabled={buyGoldDisabled}
               />
               <View style={styles.gridGap} />
               <DashboardGridTile
-                title="Sell gold"
-                subtitle={marketOpen ? 'View options' : 'Market closed'}
-                disabled={true}
+                title="Buy with points"
+                subtitle={pointsBuySubtitle}
+                onPress={() => navigation.navigate('Trade', { mode: 'buy' })}
+                disabled={pointsBuyDisabled}
               />
             </View>
+
+            <DashboardGridTile
+              title="Sell gold"
+              subtitle={marketOpen ? 'Coming soon' : 'Market closed'}
+              fullWidth
+              disabled={true}
+            />
 
             <DashboardGridTile
               title="Trade history"
@@ -250,6 +314,14 @@ export default function SdkHomeScreen() {
               subtitle="Deposit requests & status"
               fullWidth
               onPress={() => navigation.navigate('FundDepositHistory')}
+              disabled={!config.userToken}
+            />
+
+            <DashboardGridTile
+              title="Statement history"
+              subtitle="Gold & fund statements"
+              fullWidth
+              onPress={() => navigation.navigate('StatementHistory')}
               disabled={!config.userToken}
             />
           </View>

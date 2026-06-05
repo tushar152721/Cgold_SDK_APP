@@ -1,16 +1,26 @@
 import axios from 'axios';
 import { getConfig, requireConfig, setUserToken } from '../configStore';
-import { getApiErrorMessage, isPartnerOnlyApiPath } from '../utils/apiError';
+import {
+  getApiErrorMessage,
+  isPartnerOnlyApiPath,
+  shouldClearSessionOn401,
+} from '../utils/apiError';
 import { handleSdkSessionExpired } from '../utils/sessionAuth';
 import { applyMaintenanceFromApiError } from '../utils/maintenanceMode';
 
 const BOUNZ_USER_PATH = '/api/sdk/bounz/user';
 const BOUNZ_FUND_PATH = '/api/sdk/bounz/fund';
+const BOUNZ_FUND_UPDATE_PATH = '/api/sdk/bounz/fund-update';
+const BOUNZ_PAYMENT_PATH = '/api/sdk/bounz/payment';
 
 let apiClient = null;
 let fundApiClient = null;
+let fundUpdateApiClient = null;
+let bounzPaymentApiClient = null;
 let requestInterceptorId = null;
 let fundRequestInterceptorId = null;
+let fundUpdateInterceptorRef = { current: null };
+let bounzPaymentInterceptorRef = { current: null };
 
 function countryCodeForApi(code) {
   return String(code || '').replace(/\D/g, '');
@@ -19,8 +29,12 @@ function countryCodeForApi(code) {
 export function resetApiClient() {
   apiClient = null;
   fundApiClient = null;
+  fundUpdateApiClient = null;
+  bounzPaymentApiClient = null;
   requestInterceptorId = null;
   fundRequestInterceptorId = null;
+  fundUpdateInterceptorRef.current = null;
+  bounzPaymentInterceptorRef.current = null;
 }
 
 function attachSdkAuthInterceptors(client, interceptorIdRef) {
@@ -63,7 +77,7 @@ function attachSdkAuthInterceptors(client, interceptorIdRef) {
       if (
         reqConfig &&
         !isPartnerOnlyApiPath(reqConfig.url) &&
-        status === 401
+        shouldClearSessionOn401(error)
       ) {
         const message = getApiErrorMessage(
           error,
@@ -72,6 +86,13 @@ function attachSdkAuthInterceptors(client, interceptorIdRef) {
         await handleSdkSessionExpired(error);
         error.sdkSessionExpired = true;
         error.message = message;
+      } else if (status === 401 || status === 502) {
+        error.message = getApiErrorMessage(
+          error,
+          status === 502
+            ? 'Payment gateway error. Please try again or contact support.'
+            : 'Request was not authorized.',
+        );
       }
 
       return Promise.reject(error);
@@ -113,6 +134,37 @@ export function getFundApiClient() {
   }
 
   return fundApiClient;
+}
+
+export function getFundUpdateApiClient() {
+  const config = requireConfig();
+  const baseURL = `${config.apiBaseUrl}${BOUNZ_FUND_UPDATE_PATH}`;
+
+  if (!fundUpdateApiClient || fundUpdateApiClient.defaults.baseURL !== baseURL) {
+    fundUpdateApiClient = axios.create({
+      baseURL,
+      timeout: 45000,
+    });
+    attachSdkAuthInterceptors(fundUpdateApiClient, fundUpdateInterceptorRef);
+  }
+
+  return fundUpdateApiClient;
+}
+
+/** SDK Bounz Geidea payment — accepts sdk_user JWT */
+export function getBounzPaymentApiClient() {
+  const config = requireConfig();
+  const baseURL = `${config.apiBaseUrl}${BOUNZ_PAYMENT_PATH}`;
+
+  if (!bounzPaymentApiClient || bounzPaymentApiClient.defaults.baseURL !== baseURL) {
+    bounzPaymentApiClient = axios.create({
+      baseURL,
+      timeout: 45000,
+    });
+    attachSdkAuthInterceptors(bounzPaymentApiClient, bounzPaymentInterceptorRef);
+  }
+
+  return bounzPaymentApiClient;
 }
 
 /** Partner-only calls (bootstrap / register) */
@@ -218,7 +270,18 @@ export const sdkApi = {
       idempotencyKey,
     }),
 
+  /** Direct buy gold from fund balance — backend: POST /trade/gold/buy */
+  buyGoldWithBalance: data => getApiClient().post('/trade/gold/buy', data),
+
+  /** Settle buy gold after Geidea capture — backend: POST /trade/gold/buy-online */
+  buyGoldWithOnlinePayment: data =>
+    getApiClient().post('/trade/gold/buy-online', data),
+
   getTradeHistory: ({ page = 1, limit = 20 } = {}) =>
+    getApiClient().get('/trade/history', { params: { page, limit } }),
+
+  /** Buy gold list — same data as getTradeHistory; mirrors main app GET /buygold/?page= */
+  getBuyGoldHistory: (page = 1, limit = 20) =>
     getApiClient().get('/trade/history', { params: { page, limit } }),
 
   /** Direct / online fund deposit request (pending admin approval). */
@@ -234,4 +297,21 @@ export const sdkApi = {
   /** Same as main app GET /api/funddeposit/?page=N — returns { docs, totalPages, ... } */
   getDepositFundHistory: (page = 1, limit = 20) =>
     getFundApiClient().get('/', { params: { page, limit } }),
+
+  geideaStartPayment: data =>
+    getBounzPaymentApiClient().post('/start', data),
+
+  geideaVerifyPayment: data =>
+    getBounzPaymentApiClient().post('/verify', data),
+
+  fundDepositAutoApprove: data =>
+    getFundUpdateApiClient().post('/autoApprove', data),
+
+  /** Statement audits — mirrors main app GET /api/audits */
+  getStatementAudits: (params = {}) =>
+    getApiClient().get('/statement', { params }),
+
+  /** Statement PDF — mirrors main app GET /api/audits/getstatmentpdf */
+  getStatementPdf: (params = {}) =>
+    getApiClient().get('/statement/pdf', { params }),
 };

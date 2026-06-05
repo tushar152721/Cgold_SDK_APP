@@ -44,7 +44,8 @@ export default function ComtechGoldHeader({
 
   const showMenu = showMenuProp ?? derived.showMenu;
   const showBack = showBackProp ?? derived.showBack;
-  const pageTitle = pageTitleProp ?? derived.pageTitle;
+  const pageTitle =
+    pageTitleProp !== undefined ? pageTitleProp : derived.pageTitle;
   const menuEnabled = showMenu && menu?.menuScope === true;
   const showCurrencyPill = menuEnabled && route.name === 'SdkHome';
 
@@ -127,10 +128,12 @@ const styles = StyleSheet.create({
   barInner: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   logoWrap: {
     flex: 1,
-    minWidth: 120,
+    flexShrink: 1,
+    minWidth: 0,
     marginRight: 8,
     justifyContent: 'center',
   },
@@ -156,6 +159,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    flexShrink: 0,
+    marginLeft: 'auto',
   },
   menuIcon: {
     width: 18,

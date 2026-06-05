@@ -38,12 +38,17 @@ export function SdkMenuProvider({ children }) {
 
   const closeMenu = useCallback(() => setVisible(false), []);
 
-  const navigateFromMenu = useCallback(routeName => {
+  const navigateFromMenu = useCallback((routeName, params) => {
     setVisible(false);
     const nav = navigationRef.current;
     if (!nav?.dispatch) {
       return;
     }
+
+    const route =
+      params && Object.keys(params).length > 0
+        ? { name: routeName, params }
+        : { name: routeName };
 
     if (routeName === 'SdkHome') {
       nav.dispatch(
@@ -58,7 +63,7 @@ export function SdkMenuProvider({ children }) {
     nav.dispatch(
       CommonActions.reset({
         index: 1,
-        routes: [{ name: 'SdkHome' }, { name: routeName }],
+        routes: [{ name: 'SdkHome' }, route],
       }),
     );
   }, []);

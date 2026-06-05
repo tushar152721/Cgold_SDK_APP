@@ -99,11 +99,27 @@ export function DirectTransferIcon({ selected = true }) {
   );
 }
 
+/** Fund / wallet balance */
+export function WalletBalanceIcon({ selected = true }) {
+  const gold = selected ? SDK_COLORS.primary : '#C4B896';
+  return (
+    <IconCanvas selected={selected}>
+      <Svg width={SIZE} height={SIZE} viewBox="0 0 30 30">
+        <Rect x="3" y="8" width="24" height="17" rx="3" fill={gold} />
+        <Rect x="3" y="11" width="24" height="4" fill="#1A1A1A" opacity={0.15} />
+        <Circle cx="21" cy="18" r="2.5" fill="#FFF8E7" />
+        <Rect x="6" y="17" width="9" height="2" rx="1" fill="#FFF8E7" opacity={0.9} />
+      </Svg>
+    </IconCanvas>
+  );
+}
+
 const ICON_MAP = {
   card: CardPaymentIcon,
   google: GooglePayIcon,
   apple: ApplePayIcon,
   transfer: DirectTransferIcon,
+  wallet: WalletBalanceIcon,
 };
 
 export function PaymentMethodIcon({ type, selected = false }) {

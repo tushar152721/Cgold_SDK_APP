@@ -6,10 +6,14 @@ import SdkHomeScreen from '../screens/SdkHomeScreen';
 import KycScreen from '../screens/KycScreen';
 import KycVerificationScreen from '../screens/KycVerificationScreen';
 import TradeScreen from '../screens/TradeScreen';
+import BuyGoldScreen from '../screens/BuyGoldScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import TradeHistoryScreen from '../screens/TradeHistoryScreen';
 import AddFundScreen from '../screens/AddFundScreen';
+import GeideaPaymentScreen from '../screens/GeideaPaymentScreen';
 import FundDepositHistoryScreen from '../screens/FundDepositHistoryScreen';
+import StatementHistoryScreen from '../screens/StatementHistoryScreen';
+import AboutUsScreen from '../screens/AboutUsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -76,8 +80,8 @@ export default function SdkNavigator({
       />
       <Stack.Screen
         name="BuyGold"
-        component={TradeScreen}
-        options={{ title: 'Buy gold' }}
+        component={BuyGoldScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="AddFund"
@@ -85,8 +89,23 @@ export default function SdkNavigator({
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="GeideaPayment"
+        component={GeideaPaymentScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
         name="FundDepositHistory"
         component={FundDepositHistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="StatementHistory"
+        component={StatementHistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AboutUs"
+        component={AboutUsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

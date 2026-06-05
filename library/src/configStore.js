@@ -5,6 +5,8 @@ import { clearTradeConfigCache } from './utils/tradeConfigCache';
 import { clearProfileCache } from './utils/profileCache';
 import { clearMaintenanceMode } from './utils/maintenanceMode';
 import { resetPendingBuyTracker } from './utils/pendingBuyTracker';
+import { resetGoldBalanceWatcher } from './utils/goldBalanceWatcher';
+import { clearPendingDashboardGoldRefresh } from './utils/dashboardRefreshBus';
 
 /** @type {import('./types').ComtechGoldConfig | null} */
 let memoryConfig = null;
@@ -45,6 +47,8 @@ export async function clearUserToken() {
   clearProfileCache();
   clearMaintenanceMode();
   resetPendingBuyTracker();
+  resetGoldBalanceWatcher();
+  clearPendingDashboardGoldRefresh();
   resetApiClient();
   const persisted = { ...memoryConfig };
   delete persisted.onKycStarted;
@@ -138,6 +142,8 @@ export async function clearConfig() {
   clearProfileCache();
   clearMaintenanceMode();
   resetPendingBuyTracker();
+  resetGoldBalanceWatcher();
+  clearPendingDashboardGoldRefresh();
   resetApiClient();
   await AsyncStorage.removeItem(STORAGE_KEY);
 }

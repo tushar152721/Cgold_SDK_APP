@@ -6,6 +6,8 @@ import ComtechGold from '../ComtechGold';
 import SdkNavigator from '../navigation/SdkNavigator';
 import { SdkPriceProvider } from '../context/SdkPriceContext';
 import { SdkCurrencyProvider } from '../context/SdkCurrencyContext';
+import { SdkToastProvider } from '../context/SdkToastContext';
+import SdkGlobalListeners from '../components/SdkGlobalListeners';
 import { setEventListener } from '../configStore';
 
 /**
@@ -40,16 +42,19 @@ export default function ComtechGoldProvider({
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <SdkToastProvider>
         <SdkPriceProvider>
           <SdkCurrencyProvider>
             <NavigationContainer
               ref={ref => {
                 ComtechGold.setNavigationRef(ref);
               }}>
+              <SdkGlobalListeners />
               {content}
             </NavigationContainer>
           </SdkCurrencyProvider>
         </SdkPriceProvider>
+        </SdkToastProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
